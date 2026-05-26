@@ -1,0 +1,30 @@
+.DS_Store
+
+# R / RStudio
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# Stata
+*.smcl
+*.log
+*.tmp
+*.gph
+*.ster
+*.bak
+*.stswp
+__*
+
+# Data cruda o pesada
+Data Raw/
+Data Out/
+Data Int/
+
+# LaTeX auxiliary files
+*.aux
+*.out
+*.toc
+*.bbl
+*.blg
+*.synctex.gz
