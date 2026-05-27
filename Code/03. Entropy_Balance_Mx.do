@@ -387,7 +387,7 @@ restore
 	* Distribución de los pesos
 histogram w2_8 if spanish_presence==0, name(g1, replace) title("w 2.8") xtitle(Entropy balancing weights)
 histogram w2_10 if spanish_presence==0, name(g2, replace) title("w 2.10") xtitle(Entropy balancing weights) ytitle("")
-graph combine g1 g2, col(2) ycommon title("Distribution of EB Weights – Spanish Presence, both windows", size(*0.7))
+graph combine g1 g2, col(2) ycommon title("Distribution of EB Weights – Spanish Presence, Any Window", size(*0.7))
 graph export "$out_folder/weights_panels_12_v2.png", replace
 
 	* Estadísticas
@@ -691,10 +691,16 @@ esttab using "$out_folder/balance_summary_12_g3.csv", ///
     noobs nonumber nomtitle nonote plain unstack replace
 }
 	
+*** Guardo la data con los pesos
+keep inegi w*
+
+merge 1:m inegi using "$data_out/estimacion_remesas_yr_coh2" // hay dos que no se unen porque no tienen data de remesas
+drop _merge
+order w*, last
+
+save "$data_out/estimacion_remesas_yr_coh_eb.dta", replace
 
 
-
-	
 * -------------------------------------- *
 * 2. EB - Estimación stock de españoles
 * -------------------------------------- *

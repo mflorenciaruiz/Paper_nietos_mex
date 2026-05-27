@@ -22,8 +22,12 @@ library(synthdid)
 # 0. Data
 # -------------------- #
 
-estimacion_yr <- read_csv("Data Out/estimacion_remesas_yr2.csv")
-estimacion_tri <- read_csv("Data Out/estimacion_remesas_yr.csv")
+setwd("/Users/florenciaruiz/BID 2/Paper Valerie/Nietos/México/Paper_nietos_mex")
+
+estimacion_yr     <- read_csv("Data Out/estimacion_remesas_yr2.csv")
+estimacion_tri    <- read_csv("Data Out/estimacion_remesas_yr.csv")
+estimacion_yr_eb  <- read_dta("Data Out/estimacion_remesas_yr_coh_eb.dta")
+estimacion_yr_coh <- read_csv("Data Out/estimacion_remesas_yr_coh2.csv")
 
 # -------------------- #
 # 1. Estimaciones
@@ -833,8 +837,8 @@ iplot(event15b)
 ## Anual ##
 
 # Estimación con año base 2021, todos los años pre completos, log remesas
-feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
-        inegi + year, data = estimacion_yr_coh)
+att1_c <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                     inegi + year, data = estimacion_yr_coh)
 
 event1_c_36 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
                   inegi + year, data = estimacion_yr_coh)
@@ -845,8 +849,8 @@ event1_c_55 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") |
 iplot(event1_c_55) 
 
 # Estimación con año base 2021, todos los años completos, log remesas, FE interactuados (mig US 2010 x Year)
-feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
-        inegi + year + viv_emig_10[year], data = estimacion_yr_coh) # al 10% en ambos
+att2_c <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                     inegi + year + viv_emig_10[year], data = estimacion_yr_coh) # al 10% en ambos
 
 event2_c_36 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
                        inegi + year +  + viv_emig_10[year], data = estimacion_yr_coh)
@@ -857,8 +861,8 @@ event2_c_55 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") |
 iplot(event2_c_55) 
 
 # Estimación con año base 2021, todos los años completos, log remesas, FE interactuados (mig US 2000 x Year)
-feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
-        inegi + year + viv_emig_00[year], data = estimacion_yr_coh) # no da siginficativo
+att3_c <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                  inegi + year + viv_emig_00[year], data = estimacion_yr_coh) # no da siginficativo
 
 event3_c_36 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
                        inegi + year +  + viv_emig_00[year], data = estimacion_yr_coh)
@@ -874,7 +878,544 @@ iplot(event3_c_55)
 }
 
 # ---------------------------- #
-# 3. Synthetic DiD
+# 3. Estimaciones EB por cohorte
+# ---------------------------- #
+
+## 3.1 Estrategia 1 - Alternativa de pesos 8 ##
+{
+# Estimación con año base 2021, todos los años pre completos, log remesas
+att1_c_w118 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                  inegi + year, data = estimacion_yr_eb, weights = ~w11_8)
+summary(att1_c_w118)
+
+att1_c_w128 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                        inegi + year, data = estimacion_yr_eb, weights = ~w12_8)
+summary(att1_c_w128)
+
+  # Event Study
+event1_c_36_w118 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
+                       inegi + year, data = estimacion_yr_eb, weights = ~w11_8)
+iplot(event1_c_36_w118) 
+
+event1_c_55_w128 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") | 
+                       inegi + year, data = estimacion_yr_eb, weights = ~w12_8)
+iplot(event1_c_55_w128) 
+
+# Estimación con año base 2021, todos los años completos, log remesas, FE interactuados (mig US 2010 x Year)
+att2_c_w118 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                  inegi + year + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w11_8)
+summary(att2_c_w118)
+
+att2_c_w128 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                       inegi + year + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w12_8)
+summary(att2_c_w128)
+
+  # Eevent Study
+event2_c_36_w118 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
+                       inegi + year +  + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w11_8)
+iplot(event2_c_36_w118) 
+
+event2_c_55_w128 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") | 
+                       inegi + year +  + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w12_8)
+iplot(event2_c_55_w128) 
+}
+
+## 3.2. Estrategia 1 - Alternativa de pesos 10 ##
+{
+# Estimación con año base 2021, todos los años pre completos, log remesas
+att1_c_w1110 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                        inegi + year, data = estimacion_yr_eb, weights = ~w11_10)
+summary(att1_c_w1110)
+
+att1_c_w1210 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                        inegi + year, data = estimacion_yr_eb, weights = ~w12_10)
+summary(att1_c_w1210)
+
+  # Event Study
+event1_c_36_w1110 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
+                         inegi + year, data = estimacion_yr_eb, weights = ~w11_10)
+iplot(event1_c_36_w1110) 
+
+event1_c_55_w1210 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") | 
+                         inegi + year, data = estimacion_yr_eb, weights = ~w12_10)
+iplot(event1_c_55_w1210) 
+
+# Estimación con año base 2021, todos los años completos, log remesas, FE interactuados (mig US 2010 x Year)
+att2_c_w1110 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                       inegi + year + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w11_10)
+summary(att2_c_w1110)
+
+att2_c_w1210 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                       inegi + year + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w12_10)
+summary(att2_c_w1210)
+
+  # Event Study
+event2_c_36_w1110 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
+                            inegi + year +  + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w11_10)
+iplot(event2_c_36_w1110) 
+
+event2_c_55_w1210 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") | 
+                            inegi + year +  + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w12_10)
+iplot(event2_c_55_w1210) 
+}
+
+## 3.3. Estrategia 2 - Alternativa de pesos 8 ##
+{
+# Estimación con año base 2021, todos los años pre completos, log remesas
+att1_c_w28 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                        inegi + year, data = estimacion_yr_eb, weights = ~w2_8)
+summary(att1_c_w28)
+
+  # Event Study
+event1_c_36_w28 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
+                         inegi + year, data = estimacion_yr_eb, weights = ~w2_8)
+iplot(event1_c_36_w28) 
+
+event1_c_55_w28 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") | 
+                         inegi + year, data = estimacion_yr_eb, weights = ~w2_8)
+iplot(event1_c_55_w28) 
+
+# Estimación con año base 2021, todos los años completos, log remesas, FE interactuados (mig US 2010 x Year)
+att2_c_w28 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                        inegi + year + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w2_8)
+summary(att2_c_w28)
+
+  # Event Study
+event2_c_36_w28 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
+                             inegi + year +  + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w2_8)
+iplot(event2_c_36_w28) 
+
+event2_c_55_w28 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") | 
+                             inegi + year +  + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w2_8)
+iplot(event2_c_55_w28)
+}
+
+## 3.4. Estrategia 2 - Alternativa de pesos 10 ##
+{
+# Estimación con año base 2021, todos los años pre completos, log remesas
+att1_c_w210 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                      inegi + year, data = estimacion_yr_eb, weights = ~w2_10)
+summary(att1_c_w210)
+
+# Event Study
+event1_c_36_w210 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
+                           inegi + year, data = estimacion_yr_eb, weights = ~w2_10)
+iplot(event1_c_36_w210) 
+
+event1_c_55_w210 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") | 
+                           inegi + year, data = estimacion_yr_eb, weights = ~w2_10)
+iplot(event1_c_55_w210) 
+
+# Estimación con año base 2021, todos los años completos, log remesas, FE interactuados (mig US 2010 x Year)
+att2_c_w210 <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                      inegi + year + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w2_10)
+summary(att2_c_w210)
+
+# Event Study
+event2_c_36_w210 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
+                           inegi + year +  + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w2_10)
+iplot(event2_c_36_w210) 
+
+event2_c_55_w210 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") | 
+                           inegi + year +  + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w2_10)
+iplot(event2_c_55_w210)
+}
+
+## Exporto los resultados de 2 y 3 ##
+{
+# --- ATTs --- #
+  
+models <- list(
+  "ATT1: No weights"             = att1_c,
+  "ATT2: No weights"             = att2_c,
+  "ATT1: w1.8 (1936–1955)"       = att1_c_w118,
+  "ATT1: w1.8 (1956–1978)"       = att1_c_w128,
+  "ATT2: w1.8 (1936–1955)"       = att2_c_w118,
+  "ATT2: w1.8 (1956–1978)"       = att2_c_w128,
+  "ATT1: w1.10 (1936–1955)"      = att1_c_w1110,
+  "ATT1: w1.10 (1956–1978)"      = att1_c_w1210,
+  "ATT2: w1.10 (1936–1955)"      = att2_c_w1110,
+  "ATT2: w1.10 (1956–1978)"      = att2_c_w1210,
+  "ATT1: w2.8"                   = att1_c_w28,
+  "ATT2: w2.8"                   = att2_c_w28,
+  "ATT1: w2.10"                  = att1_c_w210,
+  "ATT2: w2.10"                  = att2_c_w210
+)
+
+mig_time_fe <- c(
+  "No",  "Yes",
+  "No",  "No",  "Yes", "Yes",
+  "No",  "No",  "Yes", "Yes",
+  "No",  "Yes",
+  "No",  "Yes"
+)
+
+add_rows <- data.frame(
+  term = c("Municipality FE", "Time FE", "Migration × Time FE"),
+  rbind(
+    rep("Yes", length(models)),
+    rep("Yes", length(models)),
+    mig_time_fe
+  ),
+  check.names = FALSE
+)
+
+names(add_rows) <- c("term", names(models))
+
+modelsummary(
+  models,
+  output = "Output/Estimaciones/att_cohorts_eb.xlsx",
+  stars = c("*" = 0.10, "**" = 0.05, "***" = 0.01),
+  gof_map = data.frame(
+    raw = c("r.squared", "nobs"),
+    clean = c("R²", "Observations"),
+    fmt = c(3, 0)
+  ),
+  coef_map = c(
+    "spanish_presence_1936_1955:post21" = "Post × Spanish Presence (1936–1955)",
+    "post21:spanish_presence_1956_1978" = "Post × Spanish Presence (1956–1978)"
+  ),
+  add_rows = add_rows,
+  notes = "Standard errors clustered at the municipality level in parentheses. * p<0.1, ** p<0.05, *** p<0.01."
+)
+
+# --- Event Studies --- #
+
+ # Event Studies sin pesos
+
+  # Exporto el gráfico del event study para la cohorte 1936-1955 sin pesos, sin controles de migración, con año base 2021
+png("Output/Estimaciones/event1_c_36.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event1_c_36, main = "Post × Spanish Presence (1936–1955)",  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+  # Exporto el gráfico del event study para la cohorte 1956-1978 sin pesos, sin controles de migración, con año base 2021
+png("Output/Estimaciones/event1_c_55.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event1_c_55, main ="Post × Spanish Presence (1956–1978)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+  # Exporto el gráfico del event study para la cohorte 1936-1955 sin pesos, con controles de migración, con año base 2021
+png("Output/Estimaciones/event2_c_36.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event2_c_36, main ="Post × Spanish Presence (1936–1955)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+  # Exporto el gráfico del event study para la cohorte 1956-1978 sin pesos, con controles de migración, con año base 2021
+png("Output/Estimaciones/event2_c_55.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event2_c_55, main ="Post × Spanish Presence (1956–1978)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+ # Event studies con pesos
+
+  # Exporto los gráficos del event study para la cohorte 1936-1955 con pesos, sin controles de migración, con año base 2021
+png("Output/Estimaciones/event1_c_36_w118.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event1_c_36_w118, main ="Post × Spanish Presence (1936–1955)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event1_c_36_w1110.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event1_c_36_w1110, main ="Post × Spanish Presence (1936–1955)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event1_c_36_w28.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event1_c_36_w28, main ="Post × Spanish Presence (1936–1955)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event1_c_36_w210.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event1_c_36_w210, main ="Post × Spanish Presence (1936–1955)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+  # Exporto el gráfico del event study para la cohorte 1956-1978 con pesos, sin controles de migración, con año base 2021
+png("Output/Estimaciones/event1_c_55_w128.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event1_c_55_w128, main ="Post × Spanish Presence (1956–1978)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event1_c_55_w1210.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event1_c_55_w1210, main ="Post × Spanish Presence (1956–1978)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event1_c_55_w28.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event1_c_55_w28, main ="Post × Spanish Presence (1956–1978)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event1_c_55_w210.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event1_c_55_w210, main ="Post × Spanish Presence (1956–1978)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+  # Exporto los gráficos del event study para la cohorte 1936-1955 con pesos, con controles de migración, con año base 2021
+png("Output/Estimaciones/event2_c_36_w118.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event2_c_36_w118, main ="Post × Spanish Presence (1936–1955)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event2_c_36_w1110.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event2_c_36_w1110, main ="Post × Spanish Presence (1936–1955)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event2_c_36_w28.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event2_c_36_w28, main ="Post × Spanish Presence (1936–1955)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event2_c_36_w210.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event2_c_36_w210, main ="Post × Spanish Presence (1936–1955)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+  # Exporto el gráfico del event study para la cohorte 1956-1978 con pesos, sin controles de migración, con año base 2021
+png("Output/Estimaciones/event2_c_55_w128.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event2_c_55_w128, main ="Post × Spanish Presence (1956–1978)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event2_c_55_w1210.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event1_c_55_w1210, main ="Post × Spanish Presence (1956–1978)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event2_c_55_w28.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event2_c_55_w28, main ="Post × Spanish Presence (1956–1978)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+png("Output/Estimaciones/event2_c_55_w210.png", width = 6.5, height = 4.5, units = "in", res = 300)
+op <- par(no.readonly = TRUE)   # guardar par() actual
+on.exit(par(op))                # restaurar al final
+
+par(cex.lab = 1.1, cex.axis = 1.1, 
+    #family = "Times New Roman", 
+    bty = "l",
+    #mar = c(4.2, 7, 0.8, 0.8),    # ↓ margen sup. (tercer número)
+    yaxs = "i",                   # sin padding extra en ejes
+    mgp  = c(2.0, 0.6, 0))        # acercar etiquetas/axis a la trama
+iplot(event2_c_55_w210, main ="Post × Spanish Presence (1956–1978)" ,  xlab    = "Year", 
+      #ci.lty = 2,                 # líneas de IC punteadas
+      ci.col = "grey50",
+      grid    = FALSE)
+dev.off()
+
+}
+# ---------------------------- #
+# 4. Synthetic DiD
 # ---------------------------- #
 {
 # Creo los grupos
