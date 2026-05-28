@@ -875,6 +875,13 @@ iplot(event3_c_55)
 # controles: 
   # Migracion a eeuu anual o en un año dado (“dejá que los municipios que ya eran migratorios a EE. UU. en 2000 tengan una dinámica temporal distinta de las remesas.”)
   # reveer controles trimestrales, los datos de emig eeuu mex son anuales y los interactuo con fe trimestrañes
+
+# Media de remesas pre tratamiento
+estimacion_yr_coh_pre <- estimacion_yr_coh %>% 
+  filter(year < 2021 , spanish_presence_1956_1978 == 0 , spanish_presence_1936_1955 == 0) 
+Hmisc::describe(estimacion_yr_coh_pre$log_remesas)
+Hmisc::describe(estimacion_yr_coh_pre$total_remesas)
+  
 }
 
 # ---------------------------- #
@@ -918,6 +925,7 @@ iplot(event2_c_36_w118)
 event2_c_55_w128 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") | 
                        inegi + year +  + viv_emig_10[year], data = estimacion_yr_eb, weights = ~w12_8)
 iplot(event2_c_55_w128) 
+
 }
 
 ## 3.2. Estrategia 1 - Alternativa de pesos 10 ##

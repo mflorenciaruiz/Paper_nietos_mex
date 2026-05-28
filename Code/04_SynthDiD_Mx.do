@@ -1,17 +1,15 @@
 /*******************************************************************************
 								 Código 4:
 						Synthetic Difference-in-Differences
-				   Efecto de la Ley de Nietos sobre las remesas
 *******************************************************************************/
 
 /* -----------------------------------------------------------------------------
- NOTAS DE DISEÑO (leer antes de correr):
+ NOTAS DE DISEÑO:
 
  1) TRATAMIENTO BINARIO. SDID necesita un tratamiento 0/1. Se usan las dummies
     de presencia española (spanish_presence_*). El ATT estimado es el efecto de
-    TENER presencia española (margen extensivo), no el efecto de intensidad que
-    estimás en el DiD con log_spanish_born_avg.
-
+    TENER presencia española (margen extensivo).
+	
  2) GRUPO DE CONTROL. En las ventanas c1 y c2 el contrafactual son SOLO los
     municipios never-treated puros: se excluyen los que tienen presencia
     únicamente en la OTRA ventana, para no mezclar en el contrafactual a los
@@ -41,7 +39,7 @@
 clear all
 set more off
 
-global main "/Users/florenciaruiz/BID 2/Paper Valerie/Nietos/México"
+global main "/Users/florenciaruiz/BID 2/Paper Valerie/Nietos/México/Paper_nietos_mex"
 global data_out   "$main/Data Out"
 global out_folder "$main/Output/SynthDiD"
 cap mkdir "$out_folder"
@@ -49,14 +47,13 @@ cap mkdir "$out_folder"
 * -------------------------------------- *
 * 0.1 Parámetros (modificables)
 * -------------------------------------- *
-local tyear   = 2022          // año de inicio del tratamiento (Ley de Nietos)
-                              //   alternativa: 2021 (efecto anticipado)
-local vcetype = "bootstrap"   // inferencia ATT: bootstrap | jackknife | placebo
-local nreps   = 50            // repeticiones para el ATT (subir a 500+ p/ final)
-local esreps  = 100           // repeticiones bootstrap del EVENT STUDY.
-                              //   OJO: es la parte lenta (reestima sdid esreps
-                              //   veces x 6 especificaciones). Bajar para probar.
-local seed    = 1213
+global tyear   = 2022           // año de inicio del tratamiento (Ley de Nietos)
+                                //   alternativa: 2021 (efecto anticipado)
+global vcetype = "bootstrap"    // inferencia ATT: bootstrap | jackknife | placebo
+global nreps   = 50             // repeticiones para el ATT (subir a 500+ p/ final)
+global esreps  = 100            // repeticiones bootstrap del EVENT STUDY. Es la parte lenta (reestima sdid esreps
+                                //   veces x 6 especificaciones). Bajar para probar.
+global seed    = 1213
 
 * -------------------------------------- *
 * 1. Datos y panel balanceado
@@ -70,12 +67,12 @@ egen mun = group(inegi)
 * variable dependiente faltante
 drop if missing(log_remesas)
 quietly summ year
-local y0 = r(min)
-local y1 = r(max)
-local Ttot = `y1' - `y0' + 1
-local Tpre = `tyear' - `y0'            // nº de períodos pre-tratamiento
+global y0 = r(min)
+global y1 = r(max)
+global Ttot = $y1 - $y0 + 1
+global Tpre = $tyear - $y0            // nº de períodos pre-tratamiento
 bysort mun: gen _nobs = _N
-keep if _nobs == `Ttot'
+keep if _nobs == $Ttot
 drop _nobs
 
 xtset mun year
@@ -85,12 +82,12 @@ xtset mun year
 * -------------------------------------- *
 * Se omite el año de referencia (tyear-1) para evitar colinealidad con los
 * efectos fijos de municipio.
-local ref = `tyear' - 1
-local migvars ""
-forvalues y = `y0'/`y1' {
-    if `y' != `ref' {
+global ref = `tyear' - 1
+global migvars ""
+forvalues y = $y0 / $y1 {
+    if `y' != $ref {
         gen mig10_`y' = viv_emig_10 * (year == `y')
-        local migvars `migvars' mig10_`y'
+        global migvars $migvars mig10_`y'
     }
 }
 
@@ -120,7 +117,7 @@ program define sdid_es
     local yy0 = `tyear' - `tpre'
     local yy1 = `yy0' + `ttot' - 1
 
-    preserve
+    *preserve
         * sdid dibuja un gráfico cada vez que se lo llama con la opción graph;
         * quietly NO suprime ese gráfico. set graphics off evita que se muestren
         * las (1 + B) corridas internas. Las matrices e() se calculan igual.
@@ -178,15 +175,15 @@ program define sdid_es
 
         twoway rarea UCI LCI time, color(gray%40)                          ///
             || scatter d time, color(black) m(d)                           ///
-            ||, xtitle("") ytitle("log remesas (Tratado - Control)")        ///
-               title("`lbl'")                                              ///
+            ||, xtitle("") ytitle("Log remittances (Tratment - Control)")        ///
+               title("`lbl'", size(*0.7))                                              ///
                xlab(`yy0'(1)`yy1', angle(45))                              ///
                `ylabopt'                                                   ///
                legend(order(2 "Estimación puntual" 1 "IC 95%") pos(12) col(2)) ///
                xline(`tyear', lc(black) lp(solid))                         ///
-               yline(0, lc(black) lp(shortdash)) scheme(s2color)
+               yline(0, lc(black) lp(shortdash)) scheme(stsj)
         graph export "`stub'_eventstudy.png", replace
-    restore
+    *restore
 end
 
 * -------------------------------------- *
@@ -197,6 +194,7 @@ end
 *   c1     : presencia en la ventana 1936-1955
 *   c2     : presencia en la ventana 1956-1978
 
+* Trends
 eststo clear
 
 foreach spec in pooled c1 c2 {
@@ -207,20 +205,26 @@ foreach spec in pooled c1 c2 {
         if "`spec'" == "pooled" {
             gen byte _trt = (spanish_presence_1936_1955==1 | ///
                              spanish_presence_1956_1978==1)
+			
+			local name_spec "Tratment: Any Window"
         }
         else if "`spec'" == "c1" {
             * excluyo municipios con presencia SOLO en la ventana 1956-1978
             drop if spanish_presence_1936_1955==0 & spanish_presence_1956_1978==1
             gen byte _trt = (spanish_presence_1936_1955==1)
+			
+			local name_spec "Tratment: Window 1936-1955"
         }
         else if "`spec'" == "c2" {
             * excluyo municipios con presencia SOLO en la ventana 1936-1955
             drop if spanish_presence_1956_1978==0 & spanish_presence_1936_1955==1
             gen byte _trt = (spanish_presence_1956_1978==1)
+			
+			local name_spec "Tratment: Window 1956-1978"
         }
 
         * variable de tratamiento 0/1 acumulada que pide sdid
-        gen byte treat = (_trt==1 & year >= `tyear')
+        gen byte treat = (_trt==1 & year >= $tyear )
 
         di _n(2) "{hline 72}"
         di "  SDID  |  spec = `spec'  |  tratamiento desde `tyear'"
@@ -228,37 +232,94 @@ foreach spec in pooled c1 c2 {
 
         * ===== (a) SIN controles =====
         eststo sdid_`spec'_nc: sdid log_remesas mun year treat, ///
-            vce(`vcetype') seed(`seed') reps(`nreps') ///
+            vce($vcetype ) seed($seed ) reps($nreps ) ///
             graph mattitles ///
-            g2_opt(ytitle("log remesas") scheme(s2color)) ///
+            g2_opt(ytitle("Log remittances") ///
+			      title("Remittances Trends - `name_spec'", size(*0.7)) ///
+				  xtitle("Year") scheme(stsj)) ///
             graph_export("$out_folder/sdid_`spec'_sincontrol_", .png)
 
         matlist e(lambda), title("Pesos temporales lambda - `spec' sin controles")
 
-        sdid_es log_remesas mun year treat, ///
-            tyear(`tyear') tpre(`Tpre') ttot(`Ttot') ///
-            b(`esreps') seed(`seed') ///
+        * sdid_es log_remesas mun year treat, ///
+            tyear($tyear ) tpre($Tpre ) ttot($Ttot ) ///
+            b($esreps ) seed($seed ) ///
             lbl("Event study SDID - `spec' (sin controles)") ///
             stub("$out_folder/sdid_`spec'_sincontrol")
 
         * ===== (b) CON controles (migración EEUU 2010 x año) =====
         eststo sdid_`spec'_c: sdid log_remesas mun year treat, ///
-            vce(`vcetype') seed(`seed') reps(`nreps') ///
-            covariates(`migvars', projected) ///
+            vce($vcetype ) seed($seed ) reps($nreps ) ///
+            covariates($migvars , projected) ///
             graph mattitles ///
-            g2_opt(ytitle("log remesas") scheme(s2color)) ///
+            g2_opt(ytitle("Log remittances") ///
+			       title("Remittances Trends - `name_spec' - With Controls", size(*0.7)) ///
+				   xtitle("Year") scheme(stsj)) ///
             graph_export("$out_folder/sdid_`spec'_concontrol_", .png)
 
         matlist e(lambda), title("Pesos temporales lambda - `spec' con controles")
 
-        sdid_es log_remesas mun year treat, ///
-            tyear(`tyear') tpre(`Tpre') ttot(`Ttot') ///
-            covariates(`migvars') b(`esreps') seed(`seed') ///
+        * sdid_es log_remesas mun year treat, ///
+            tyear($tyear) tpre($Tpre ) ttot($Ttot ) ///
+            covariates($migvars ) b($esreps) seed(`seed ) ///
             lbl("Event study SDID - `spec' (con controles)") ///
             stub("$out_folder/sdid_`spec'_concontrol")
 
     restore
 }
+
+
+* Event Study
+foreach spec in pooled c1 c2 {
+
+    preserve
+
+        * --- tratados y grupo de control ---
+        if "`spec'" == "pooled" {
+            gen byte _trt = (spanish_presence_1936_1955==1 | ///
+                             spanish_presence_1956_1978==1)
+			
+			local name_spec "Tratment: Any Window"
+        }
+        else if "`spec'" == "c1" {
+            * excluyo municipios con presencia SOLO en la ventana 1956-1978
+            drop if spanish_presence_1936_1955==0 & spanish_presence_1956_1978==1
+            gen byte _trt = (spanish_presence_1936_1955==1)
+			
+			local name_spec "Tratment: Window 1936-1955"
+        }
+        else if "`spec'" == "c2" {
+            * excluyo municipios con presencia SOLO en la ventana 1936-1955
+            drop if spanish_presence_1956_1978==0 & spanish_presence_1936_1955==1
+            gen byte _trt = (spanish_presence_1956_1978==1)
+			
+			local name_spec "Tratment: Window 1956-1978"
+        }
+
+        * variable de tratamiento 0/1 acumulada que pide sdid
+        gen byte treat = (_trt==1 & year >= $tyear )
+
+        di _n(2) "{hline 72}"
+        di "  SDID  |  spec = `spec'  |  tratamiento desde `tyear'"
+        di "{hline 72}"
+
+        * ===== (a) SIN controles =====
+       sdid_es log_remesas mun year treat, ///
+            tyear($tyear ) tpre($Tpre ) ttot($Ttot ) ///
+            b($esreps ) seed($seed ) ///
+            lbl("Event study SDID - `name_spec'") ///
+            stub("$out_folder/sdid_`spec'_sincontrol")
+
+        * ===== (b) CON controles (migración EEUU 2010 x año) =====
+        * sdid_es log_remesas mun year treat, ///
+            tyear($tyear) tpre($Tpre ) ttot($Ttot ) ///
+            covariates($migvars ) b($esreps) seed(`seed ) ///
+            lbl("Event study SDID - `spec' (con controles)") ///
+            stub("$out_folder/sdid_`spec'_concontrol")
+
+    restore
+}
+
 
 * -------------------------------------- *
 * 4. Tabla resumen de resultados (ATT)

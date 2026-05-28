@@ -17,6 +17,8 @@ library(stringi)
 library(fuzzyjoin)
 library(readxl)
 
+setwd("/Users/florenciaruiz/BID 2/Paper Valerie/Nietos/México/Paper_nietos_mex")
+
 # -------------------- #
 #    Censos México
 # -------------------- #
@@ -651,6 +653,32 @@ pdf("Output/hist_share_spanish_1970.pdf", width = 8, height = 6)
 hist(spanish_70_filter$share_spanish_born, xlab = "% Spanish-born", 
      main = "Distribution of the Spanish-born share (1970, excluding outlier and zero values)")
 dev.off()
+
+## Distribución de españoles ambos años ##
+
+# Histograma de cantidad de españoles (n_spanish_born)
+spanish_historical_mayor0 <- spanish_historical %>% 
+  filter(n_spanish_born > 0)
+
+Hmisc::describe(spanish_historical_mayor0$n_spanish_born)
+Hmisc::describe(spanish_historical$n_spanish_born)
+
+ggplot() +
+  geom_histogram(data = spanish_historical_mayor0,
+                 aes(x = n_spanish_born), 
+                 bins = 50, fill = "grey70", color = "white") +
+  labs(title = "Distribution of the Spanish-born population (1960 and 1970 census)", 
+       x = "Number of Spanish-born individuals", y = "Count") +
+  theme_minimal() 
+
+ggplot() +
+  geom_histogram(data = spanish_historical %>% filter(n_spanish_born > 0),
+                 aes(x = log_spanish_born_avg), 
+                 bins = 30, fill = "grey70", color = "white") +
+  labs(title = "Distribution of the Spanish-born population (1960 and 1970 census)", 
+       x = "Number of Spanish-born individuals", y = "Count") +
+  theme_minimal() 
+
 }
 # -------------------- #
 #      Remesas
@@ -2164,7 +2192,7 @@ write_dta(estimacion_yr_coh_dta, "Data Out/estimacion_remesas_yr_coh2.dta")
 # 1. LISTO. agregar las nievas covariables a estimacion_yr_coh
 # 2. LISTO. agregar a estimacion_yr las nuevas convariables par el entropy balancing. En esta data la variable de tratamiento principal es la continua
 # 3. opcional: corregir los inegi de la data de remesas trimestral para poder correr estimacion_tri
-# 4. Hacer entropy balancing en opcion discreta (estimacion_yr_coh)
+# 4. LISTO. Hacer entropy balancing en opcion discreta (estimacion_yr_coh)
 # 5. Hacer entropy balancing en opcion continua (estimacion_yr)
-# 6. un Sinth did puede ser mejor
+# 6. LISTO. un Sinth did puede ser mejor
 
