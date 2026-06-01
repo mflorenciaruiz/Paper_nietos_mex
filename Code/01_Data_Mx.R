@@ -740,7 +740,7 @@ remesas_yr <- remesas %>%
     nom_mun_clean = toupper(nom_mun_clean),
     nom_mun_clean = str_squish(nom_mun_clean) # elimino espacios duplicados, saltos de linea, espacios antes y despues
   ) %>% 
-  select(inegi, nom_mun_clean, year, total_remesas)
+  dplyr::select(inegi, nom_mun_clean, year, total_remesas)
 
 table(remesas_exp$year)
 table(remesas$aaaa)
@@ -749,7 +749,7 @@ table(remesas$aaaa)
 
 # Municipios únicos en la data de remesas
 municipios_remesas <- remesas_yr %>% 
-  select(inegi, nom_mun_clean) %>% 
+  dplyr::select(inegi, nom_mun_clean) %>% 
   #creo el código de estado
   mutate(
     state_code_remesas = str_sub(inegi, 1, 2)
@@ -760,7 +760,7 @@ municipios_remesas <- remesas_yr %>%
 # Municipios únicos en la data del censo
 municipios_censo <- municipios_sf %>% 
   st_drop_geometry() %>%
-  select(inegi, admin_name_clean) %>% 
+  dplyr::select(inegi, admin_name_clean) %>% 
   #creo el código de estado
   mutate(
     state_code_censo = str_sub(inegi, 1, 2)
@@ -809,17 +809,17 @@ table(diag_merge$merge_status)
 # A. Corrijo los casos de mismatch (hay que asignar el inegi correcto a los municipios de remesas)
 mismatch_remesas <- diag_merge %>% 
   filter(merge_status == "mismatch") %>% 
-  select(nom_mun_clean, state_code_remesas) 
+  dplyr::select(nom_mun_clean, state_code_remesas) 
 
 mismatch_censo <- diag_merge %>% 
   filter(merge_status == "mismatch") %>% 
-  select(inegi, admin_name_clean, state_code_censo) 
+  dplyr::select(inegi, admin_name_clean, state_code_censo) 
 
 crosswalk_A <- crossing(mismatch_remesas, mismatch_censo)
 
 correct_A <- crosswalk_A %>% 
   filter(str_detect(admin_name_clean, fixed(nom_mun_clean)) & state_code_censo == state_code_remesas) %>%
-  select(inegi, nom_mun_clean, state_code_remesas) # con esto me aseguro que el nombre es el nombre de la data de las remesas
+  dplyr::select(inegi, nom_mun_clean, state_code_remesas) # con esto me aseguro que el nombre es el nombre de la data de las remesas
 
 length(unique(correct_A$inegi)) # 834
 length(unique(correct_A$nom_mun_clean)) # 828
@@ -867,15 +867,15 @@ correct_A %>%
 # B. Corrijo los only remesas (tengo que meter los only remesas en los grupos agregados)
 only_remesas <- diag_merge %>%
   filter(merge_status == "only_remesas") %>%
-  select(inegi, state_code_remesas, nom_mun_clean) %>%
+  dplyr::select(inegi, state_code_remesas, nom_mun_clean) %>%
   distinct() %>% 
   # elimino los inegi que terminan en 999 (no identificado)
   filter(!str_ends(inegi, "999")) %>% 
-  select(-inegi)
+  dplyr::select(-inegi)
 
 agrupados_censo <- diag_merge %>%
   filter(census_aggregation) %>%
-  select(inegi, state_code_censo, admin_name_clean) %>%
+  dplyr::select(inegi, state_code_censo, admin_name_clean) %>%
   distinct() %>% 
   mutate(
     admin_name_nocoma = admin_name_clean %>%
@@ -891,7 +891,7 @@ crosswalk_B <- crossing(only_remesas, agrupados_censo) %>%
 
 correct_B <- crosswalk_B %>% 
   filter(str_detect(admin_pad, fixed(nom_pad)) & state_code_censo == state_code_remesas) %>%
-  select(inegi, nom_mun_clean, state_code_remesas) # con esto me aseguro que el nombre es el nombre de la data de las remesas
+  dplyr::select(inegi, nom_mun_clean, state_code_remesas) # con esto me aseguro que el nombre es el nombre de la data de las remesas
 
 setdiff(correct_B$nom_mun_clean, only_remesas$nom_mun_clean) # 0
 setdiff(only_remesas$nom_mun_clean, correct_B$nom_mun_clean) # son casos donde el inegi correspondiente del censo es mismatch o casos dond el nombre de los municipios esta cortado
@@ -912,13 +912,13 @@ crosswalk_C <- crossing(mismatch_remesas, agrupados_censo) %>%
 
 correct_C <-  crosswalk_C %>%
   filter(str_detect(admin_pad, fixed(nom_pad)) & state_code_censo == state_code_remesas) %>%
-  select(inegi, nom_mun_clean, state_code_remesas)
+  dplyr::select(inegi, nom_mun_clean, state_code_remesas)
 # 64 municipios que eran mismatch ahora tienen un grupo asignado
 
 # D. Corrijo los only censo (paso los mismatches a los only censo)
 only_censo <- diag_merge %>%
   filter(merge_status == "only_censo") %>%
-  select(inegi, state_code_censo, admin_name_clean) %>%
+  dplyr::select(inegi, state_code_censo, admin_name_clean) %>%
   mutate(
     admin_name_nocoma = admin_name_clean %>%
       str_replace_all(",", " ") %>% # reemplaza comas por espacios
@@ -933,7 +933,7 @@ crosswalk_D <- crossing(only_censo, mismatch_remesas) %>%
 
 correct_D <- crosswalk_D %>% 
   filter(str_detect(admin_pad, fixed(nom_pad)) & state_code_censo == state_code_remesas) %>%
-  select(inegi, nom_mun_clean, state_code_remesas)
+  dplyr::select(inegi, nom_mun_clean, state_code_remesas)
 
 # E. Corrijo los municipios que salen de only remesas y tienen una contrapartida con un mismatch del censo
 crosswalk_E <- crossing(only_remesas, mismatch_censo) %>% 
@@ -947,7 +947,7 @@ crosswalk_E <- crossing(only_remesas, mismatch_censo) %>%
 
 correct_E <- crosswalk_E %>% 
   filter(str_detect(admin_name_clean, fixed(nom_mun_clean)) & state_code_censo == state_code_remesas) %>%
-  select(inegi, nom_mun_clean, state_code_remesas)
+  dplyr::select(inegi, nom_mun_clean, state_code_remesas)
 
 correct_E %>% 
   count(inegi, nom_mun_clean, state_code_remesas) %>%
@@ -981,7 +981,7 @@ corregidos <- rbind(correct_A,
 # F. Corrijo los close
 close <- diag_merge %>% 
   filter(merge_status == "close") %>% 
-  select(inegi, admin_name_clean, nom_mun_clean, state_code_remesas) %>% 
+  dplyr::select(inegi, admin_name_clean, nom_mun_clean, state_code_remesas) %>% 
   mutate(state_code_censo = str_sub(inegi, 1, 2),
          coinciden = ifelse(state_code_remesas == state_code_censo, "si", "no"))
 table(close$coinciden) # todos parecen ser los mismos 
@@ -990,13 +990,13 @@ table(close$coinciden) # todos parecen ser los mismos
 # Caso a: el municipio de close es de remesas y su contraparte es un municipio del censo con mismatch
 correct_Fa <- close %>% 
   inner_join(mismatch_censo, by = c("nom_mun_clean" = "admin_name_clean", "state_code_censo")) %>% 
-  select(-inegi.x) %>% 
+  dplyr::select(-inegi.x) %>% 
   rename(inegi = inegi.y) %>% 
-  select(inegi, nom_mun_clean, state_code_remesas)
+  dplyr::select(inegi, nom_mun_clean, state_code_remesas)
 
 # Caso b: el municipio de close es del censo y su contraparte es un municipio de remesas con mismatch
 correct_Fb <- close %>% 
-  select(inegi, admin_name_clean, state_code_remesas) %>%
+  dplyr::select(inegi, admin_name_clean, state_code_remesas) %>%
   inner_join(mismatch_remesas, by = c( "admin_name_clean" = "nom_mun_clean" , "state_code_remesas")) %>% 
   rename(nom_mun_clean = admin_name_clean)
 
@@ -1045,7 +1045,7 @@ manual_corrections <- anti_join(
 # write_xlsx(manual_corrections, "Data out/manual_corrections.xlsx")
 
 manual_corrections <- read_excel("Data out/manual_corrections.xlsx") %>% 
-  select(inegi, nom_mun_clean, state_code_remesas)
+  dplyr::select(inegi, nom_mun_clean, state_code_remesas)
 
 # Agrego los corregidos a mano a los corregidos totales
 corregidos <- rbind(corregidos, manual_corrections) 
@@ -1074,10 +1074,10 @@ remesas_yr <- remesas_yr %>%
   mutate(
     inegi_final = if_else(!is.na(inegi_corregido), inegi_corregido, inegi)
   ) %>% 
-  select(-inegi, -inegi_corregido) %>% 
+  dplyr::select(-inegi, -inegi_corregido) %>% 
   rename(inegi = inegi_final) %>% 
   arrange(inegi) %>% 
-  select(inegi, nom_mun_clean, year, total_remesas, state_code_remesas)
+  dplyr::select(inegi, nom_mun_clean, year, total_remesas, state_code_remesas)
 
 any(is.na(remesas_yr$inegi)) # no hay NA
 
@@ -1400,7 +1400,7 @@ mig_eeuu_2010_c <- mig_eeuu_2010_c %>%
   )
 }
 # -------------------- #
-# Covariables población  
+# Covariables población (censo 2020)  
 # -------------------- #
 {
 # Población por edades  
@@ -2014,6 +2014,165 @@ marginacion_wide <- marginacion_agg %>%
 
 }
 # -------------------- #
+# Población por año (proyecciones CONAPO)
+# -------------------- #
+{
+pob_conapo <- read_xlsx("Data Raw/Población México/CONAPO/3_Indicadores_Dem_00_RM.xlsx")
+  
+pob_conapo <- pob_conapo %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(clave, clave_ent, nom_ent, nom_mun, ano, pob_mit_mun) %>% 
+  dplyr::mutate(
+    inegi = str_pad(clave, width = 5, pad = "0"),
+    clave_ent = str_pad(clave_ent, width = 2, pad = "0")
+  ) %>% 
+  dplyr::select(inegi, everything()) %>% 
+  dplyr::arrange(inegi)
+
+#### Diagnostico de municipios ####
+
+pob_conapo <- pob_conapo %>% 
+  # Limpio los nombres de los municipios para poder unir
+  mutate(
+    nom_mun_clean = stri_trans_general(nom_mun, "Latin-ASCII"),
+    nom_mun_clean = toupper(nom_mun_clean),
+    clave_ent = as.character(clave_ent)
+  ) %>% 
+  rename(state_code_pob = clave_ent)
+
+# Cambio el nombre de 2 municipios que tienen el nombre cortado
+pob_conapo <- pob_conapo %>% 
+  mutate(
+    nom_mun_clean = case_when(
+      inegi == 20208 ~ "SAN JUAN MIXTEPEC -DTO. 08 -",
+      inegi == 20209 ~ "SAN JUAN MIXTEPEC -DTO. 26 -",
+      
+      inegi == 20318 ~ "SAN PEDRO MIXTEPEC -DTO. 22 -",
+      inegi == 20319 ~ "SAN PEDRO MIXTEPEC -DTO. 26 -",
+      TRUE ~ nom_mun_clean
+    )
+  )
+
+# chequeo si hay municipios de la data de población que no estén en remesas
+anti_join(pob_conapo, remesas_yr %>% dplyr::select(nom_mun_clean, state_code_remesas) %>% distinct(),
+          by = c("nom_mun_clean", "state_code_pob" = "state_code_remesas")) %>% 
+  View() # esto puede ser porque no hay data de remesas para esos municipios
+# chequeo si hay municipios de remesas que no están en la data de población
+anti_join(remesas_yr %>% dplyr::select(nom_mun_clean, state_code_remesas) %>% distinct(), pob_conapo,
+          by = c("nom_mun_clean", "state_code_remesas" = "state_code_pob")) %>% 
+  View() # son nombres cortados y no identificados
+
+# Municipios únicos en la data de población
+municipios_pob <- pob_conapo %>% 
+  dplyr::select(inegi, nom_mun_clean, state_code_pob) %>% 
+  distinct() %>% 
+  arrange(inegi)
+
+# Merge por INEGI
+diag_merge_pob <- municipios_censo %>%
+  full_join(municipios_pob, by = "inegi") %>%
+  mutate(
+    # match exacto
+    exact_match = !is.na(admin_name_clean) &
+      !is.na(nom_mun_clean) &
+      admin_name_clean == nom_mun_clean,
+    
+    # uno contiene al otro
+    name_contained = !is.na(admin_name_clean) &
+      !is.na(nom_mun_clean) &
+      (
+        str_detect(admin_name_clean, fixed(nom_mun_clean)) |
+          str_detect(nom_mun_clean, fixed(admin_name_clean))
+      ),
+    
+    # el nombre del censo parece agregar varios municipios
+    census_aggregation = !is.na(admin_name_clean) &
+      str_detect(admin_name_clean, ","),
+    
+    # reemplazo a mano el municipio que tiene una coma en el nombre eliminando la coma
+    census_aggregation = ifelse(admin_name_clean == "VILLA TEZOATLAN DE SEGURA Y LUNA, CUNA DE LA INDEPENDENCIA DE OAXACA, HEROICA",
+                                FALSE, census_aggregation),
+    
+    # clasificación final (toma el primer TRUE)
+    merge_status = case_when(
+      is.na(admin_name_clean) ~ "only_pob",
+      is.na(nom_mun_clean) ~ "only_censo",
+      exact_match ~ "exact",
+      census_aggregation & name_contained ~ "part of aggregation",
+      name_contained ~ "close",
+      TRUE ~ "mismatch"
+    )
+  )
+
+table(diag_merge_pob$merge_status) #  1360 exact; 890 mismatch; 2 only censo; 152 only pob; 59 part of agg; 14 close
+
+# Municipios a corregir
+a_corregir_pob <- diag_merge_pob %>% 
+  filter(merge_status == "mismatch" | merge_status == "only_pob") %>%
+  dplyr::select(inegi, nom_mun_clean, state_code_pob)
+
+# Cuantos de los a corregir no están ya en los corregidos de las remesas
+a_corregir_pob %>% 
+  anti_join(corregidos %>% dplyr::select(nom_mun_clean, state_code_remesas) %>% distinct(),
+            by = c("nom_mun_clean", "state_code_pob" = "state_code_remesas")) %>% 
+  View() # 80
+
+# Hay municipios en corregidos que ahora no haya que corregir?
+corregidos %>% 
+  anti_join(a_corregir_pob %>% dplyr::select(nom_mun_clean, state_code_pob) %>% distinct(),
+            by = c("nom_mun_clean", "state_code_remesas" = "state_code_pob")) %>% 
+  View() # 72
+# Los que no coinciden son los que tienen nombre truncado + los 2 que no tienen inegi + los close (no estan en a corregir)
+
+# Cruzo los a-corregir que faltan con el crosswalk de municipios de la data de población
+faltan_corregir_pob <- a_corregir_pob %>% 
+  anti_join(corregidos %>% dplyr::select(nom_mun_clean, state_code_remesas) %>% distinct(),
+            by = c("nom_mun_clean", "state_code_pob" = "state_code_remesas")) %>% 
+  dplyr::select(-inegi)
+
+faltan_corregir_pob %>% count(nom_mun_clean, state_code_pob) %>% filter(n > 1) # no hay repeticiones
+
+croswalk_pob <- crossing(faltan_corregir_pob, municipios_censo) %>% 
+  mutate(
+    admin_name_nocoma = admin_name_clean %>%
+      str_replace_all(",", " ") %>% # reemplaza comas por espacios
+      str_squish(), # elimina espacios dobles
+    admin_pad = paste0(" ", admin_name_nocoma, " "),
+    nom_pad   = paste0(" ", nom_mun_clean, " ")
+  )
+
+correct_pob <- croswalk_pob %>% 
+  filter(str_detect(admin_pad, fixed(nom_pad)) & state_code_censo == state_code_pob) %>%
+  dplyr::select(inegi, nom_mun_clean, state_code_pob)
+
+# chequeo que no haya duplicados en los municipios
+correct_pob %>% 
+  count(state_code_pob, nom_mun_clean) %>%
+  filter(n>1)
+
+# Se corrigieron 65, veo cuales faltan
+anti_join(faltan_corregir_pob, correct_pob, by = c("nom_mun_clean", "state_code_pob")) %>%
+  View() # son 15 que tienen nombre distinto escrito al censo y a la data de remesas, los corrijo a mano
+
+### seguir aca: corregir nombres
+correct_pob <- correct_pob %>% 
+  rbind(anti_join(faltan_corregir_pob, correct_pob, by = c("nom_mun_clean", "state_code_pob")) %>% 
+          mutate(inegi = case_when(
+            nom_mun_clean == "SAN JUAN MIXTEPEC - DTO. 08" ~ "20207",
+            nom_mun_clean == "SAN JUAN MIXTEPEC - DTO. 26" ~ "20208",
+            nom_mun_clean == "SAN PEDRO MIXTEPEC - DTO. 22" ~ "20317",
+            nom_mun_clean == "SAN PEDRO MIXTEPEC - DTO. 26" ~ "20318",
+            nom_mun_clean == "BATOPILAS DE MANUEL GOMEZ MORIN" ~ "08007",
+            nom_mun_clean == "VILLA DE SANTIAGO CHAZUMBA" ~ "20458",
+            nom_mun_clean == "MEDELLIN DE BRAVO" ~ "30103",
+            nom_mun_clean == "HEROICA VILLA TEZOATLAN DE SEGURA Y LUNA, CUNA DE LA INDEPENDENCIA DE OAXACA" ~ "20545",
+            TRUE ~ NA_character_
+          )
+          )
+  )
+
+}
+# -------------------- #
 #     Data completa 
 # -------------------- #
 {
@@ -2189,6 +2348,7 @@ write_csv(estimacion_yr_coh, "Data Out/estimacion_remesas_yr_coh2.csv")
 write_dta(estimacion_yr_coh_dta, "Data Out/estimacion_remesas_yr_coh2.dta")
   # la versión 2 agrega las covariables de población y de marginación
 }
+
 # 1. LISTO. agregar las nievas covariables a estimacion_yr_coh
 # 2. LISTO. agregar a estimacion_yr las nuevas convariables par el entropy balancing. En esta data la variable de tratamiento principal es la continua
 # 3. opcional: corregir los inegi de la data de remesas trimestral para poder correr estimacion_tri
