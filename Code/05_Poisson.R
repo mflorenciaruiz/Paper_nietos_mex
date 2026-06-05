@@ -11,12 +11,18 @@ library(broom)
 library(stringr)
 library(readr)
 library(tibble)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(scales)
+library(gt)
 
 ############################################################
 # 0. Rutas
 ############################################################
 
-main <- "C:\\Users\\pilih\\Documents\\Papers German\\Valerie\\Paper_nietos_mex"
+#main <- "C:\\Users\\pilih\\Documents\\Papers German\\Valerie\\Paper_nietos_mex"
+main <- "/Users/florenciaruiz/BID 2/Paper Valerie/Nietos/México/Paper_nietos_mex"
 
 data_path   <- file.path(main, "Data Out")
 output_path <- file.path(main, "Output")
@@ -47,7 +53,7 @@ outlier_method <- "none"
 
 # Si querés replicar tu especificación preferida event10, poner TRUE.
 # event10 en tu script OLS usa year >= 2016 y viv_emig_10 x year.
-use_2016_sample <- TRUE
+use_2016_sample <- FALSE
 
 ref_year <- 2021
 
@@ -203,7 +209,7 @@ df_main <- clean_ppml_data(
   data = estimacion_yr,
   outcome = "total_remesas",
   outlier_method = outlier_method
-)
+) # FIX ME: no hace falta, pero faltaría limpiar las obs con NA en el treatment para que este completa la limpieza
 
 df_coh <- clean_ppml_data(
   data = estimacion_yr_coh,
@@ -323,8 +329,7 @@ if ("viv_emig_10" %in% names(df_cont)) {
 }
 
 ############################################################
-# 7. POST agregado continuo
-# Equivalente a att10 si use_2016_sample = TRUE y con mig trends
+# 7. ATTs del modelo continuo (con y sin mig trends)
 ############################################################
 
 m_post_log_spanish <- fepois(
@@ -377,6 +382,12 @@ df_presence <- df_coh %>%
     spanish_presence_1936_1955 = as.numeric(spanish_presence_1936_1955),
     spanish_presence_1956_1978 = as.numeric(spanish_presence_1956_1978)
   )
+
+# Las variables ya eran numéricas y no había NA pero lo dejo por las dudas.
+is.numeric(estimacion_yr_coh$spanish_presence_1936_1955)
+is.numeric(estimacion_yr_coh$spanish_presence_1956_1978)
+any(is.na((estimacion_yr_coh$spanish_presence_1936_1955)))
+any(is.na((estimacion_yr_coh$spanish_presence_1956_1978)))
 
 ############################################################
 # 8.1 Event-study: presencia 1936-1955
@@ -522,7 +533,7 @@ if ("viv_emig_10" %in% names(df_presence)) {
 }
 
 ############################################################
-# 9. POST agregado cohortes
+# 9. ATTs del modelo por cohortes
 # Equivalente al OLS:
 # log_remesas ~ spanish_presence_1936_1955:post21 +
 #               spanish_presence_1956_1978:post21 | inegi + year
@@ -596,12 +607,6 @@ cat("Interpretación PPML: 100*(exp(beta)-1), efecto porcentual sobre remesas es
 # Histograma de remesas totales y tabla de deciles
 ############################################################
 
-library(dplyr)
-library(ggplot2)
-library(readr)
-library(scales)
-library(gt)
-
 # Elegir base y variable
 df_hist <- estimacion_yr %>%
   filter(!is.na(total_remesas))
@@ -610,7 +615,6 @@ df_hist <- estimacion_yr %>%
 # 1. Histograma de total_remesas
 ############################################################
 
-library(scales)
 
 df_hist <- estimacion_yr %>%
   filter(!is.na(total_remesas))
@@ -653,9 +657,6 @@ ggsave(
 ############################################################
 # 3. Tabla lista para PowerPoint
 ############################################################
-
-#install.packages("gt")
-library(gt)
 
 tabla_deciles_remesas <- df_hist %>%
   mutate(

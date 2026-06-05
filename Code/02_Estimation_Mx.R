@@ -22,7 +22,8 @@ library(synthdid)
 # 0. Data
 # -------------------- #
 
-setwd("/Users/florenciaruiz/BID 2/Paper Valerie/Nietos/México/Paper_nietos_mex")
+main <- "/Users/florenciaruiz/BID 2/Paper Valerie/Nietos/México/Paper_nietos_mex"
+setwd(main)
 
 estimacion_yr     <- read_csv("Data Out/estimacion_remesas_yr2.csv")
 estimacion_tri    <- read_csv("Data Out/estimacion_remesas_yr.csv")
@@ -206,9 +207,9 @@ iplot(event8, main ="Effect on log(remittances)" ,  xlab    = "Year",
 dev.off()
 
 # Estimación con año base 2021, todos los años pre completos, FE interactuados (mig US 2010 x Year), log remesas, log spanish born
-att9 <- feols(log_remesas ~ log_spanish_born_avg :post21 | inegi + year + viv_emig_10[year], data = estimacion_yr)
+att9 <- feols(log_remesas ~ log_spanish_born_avg :post21 | inegi + year + year[viv_emig_10], data = estimacion_yr)
 event9 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2021") | 
-                inegi + year + viv_emig_10[year], data = estimacion_yr)
+                inegi + year + year[viv_emig_10], data = estimacion_yr)
 summary(att9)
 summary(event9)
 iplot(event9) 
@@ -230,12 +231,12 @@ iplot(event9, main ="Effect on log(remittances)" ,  xlab    = "Year",
 dev.off()
 
 # Estimación con año base 2021, cortando en 2016, FE interactuados (mig US 2010 x Year), log remesas, log spanish born
-att10 <- feols(log_remesas ~ log_spanish_born_avg :post21 | inegi + year + viv_emig_10[year], data = estimacion_yr%>% filter(year>=2016))
+att10 <- feols(log_remesas ~ log_spanish_born_avg :post21 | inegi + year + year[viv_emig_10], data = estimacion_yr%>% filter(year>=2016))
 event10 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2021") | 
-                inegi + year + viv_emig_10[year], data = estimacion_yr %>% filter(year>=2016))
+                inegi + year + year[viv_emig_10], data = estimacion_yr %>% filter(year>=2016))
 summary(att10)
 summary(event10)
-iplot(event10) # mejor
+iplot(event10) 
 
 png("Output/Mexico/event10.png", width = 6.5, height = 4.5, units = "in", res = 300)
 op <- par(no.readonly = TRUE)   # guardar par() actual
@@ -274,9 +275,9 @@ modelsummary(
 )
              
 # Estimación con año base 2021, cortando en 2016, FE interactuados (mig US 2000 x Year), log remesas, log spanish born
-att11 <- feols(log_remesas ~ log_spanish_born_avg :post21 | inegi + year + viv_emig_00[year], data = estimacion_yr%>% filter(year>=2016))
+att11 <- feols(log_remesas ~ log_spanish_born_avg :post21 | inegi + year + year[viv_emig_00], data = estimacion_yr%>% filter(year>=2016))
 event11 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2021") | 
-                 inegi + year + viv_emig_00[year], data = estimacion_yr %>% filter(year>=2016))
+                 inegi + year +year[viv_emig_00], data = estimacion_yr %>% filter(year>=2016))
 summary(event11)
 iplot(event11) # igual que con 10
 
@@ -298,7 +299,7 @@ dev.off()
 
 # Estimación con año base 2021, todos los años completos, FE interactuados (mig US 2000 x Year), log remesas, log spanish born
 event12 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2021") | 
-                 inegi + year + viv_emig_00[year], data = estimacion_yr)
+                 inegi + year + year[viv_emig_00], data = estimacion_yr)
 summary(event12)
 iplot(event12) # 3 años significativos en el pre
 
@@ -320,19 +321,19 @@ dev.off()
 
 # Estimación con año base 2021, todos los años completos, FE interactuados (intensidad mig 2010 x Year), log remesas, log spanish born
 att13 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2021") | 
-                 inegi + year + iaim_10[year], data = estimacion_yr)
+                 inegi + year + year[iaim_10], data = estimacion_yr)
 summary(att13)
 iplot(att13)
 
 # Estimación con año base 2021, todos los años completos, FE interactuados (intensidad mig 2000 x Year), log remesas, log spanish born
 att14 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2021") | 
-                 inegi + year + iaim_00[year], data = estimacion_yr)
+                 inegi + year + year[iaim_10], data = estimacion_yr)
 summary(att14)
 iplot(att14) # ic muy grandes en el pre, dudoso
 
 # Estimación con año base 2021, cortando en 2016, FE interactuados (remesas 2010 x Year), log remesas, log spanish born
 att15 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2021") | 
-                 inegi + year + viv_rem_10[year], data = estimacion_yr
+                 inegi + year + year[viv_rem_10], data = estimacion_yr
                   %>% filter(year>=2016)
                )
 summary(att15)
@@ -340,13 +341,13 @@ iplot(att15)
 
 # Estimación con año base 2021, cortando en 2016, FE interactuados (remesas 2000 x Year), log remesas, log spanish born
 att16 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2021") | 
-                 inegi + year + viv_rem_00[year], data = estimacion_yr%>% filter(year>=2016))
+                 inegi + year + year[viv_rem_00], data = estimacion_yr%>% filter(year>=2016))
 summary(att16)
 iplot(att16)
 
 # Estimación con año base 2022, todos los años complejots, FE interactuados (mig US 2010 x Year), log remesas, log spanish born
 event17 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2022") | 
-                 inegi + year + viv_emig_10[year], data = estimacion_yr)
+                 inegi + year + year[viv_emig_10], data = estimacion_yr)
 summary(event17)
 iplot(event17) # negativo significativo pero mas o menos consistente
 
@@ -368,7 +369,7 @@ dev.off()
 
 # Estimación con año base 2022, todos los años complejots, FE interactuados (mig US 2000 x Year), log remesas, log spanish born
 event18 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2022") | 
-                 inegi + year + viv_emig_00[year], data = estimacion_yr)
+                 inegi + year + year[viv_emig_00], data = estimacion_yr)
 summary(event18)
 iplot(event18)
 
@@ -397,14 +398,14 @@ iplot(att19)
 # Estimación con año base 2021, todos los años completos, FE interactuados (mig US 2000 x Year), log remesas, spanish born
 att20 <- feols(log_remesas ~ i(year, spanish_born, "2022") | 
                  inegi + year  +
-                 viv_emig_00[year] , 
+                 year[viv_emig_00] , 
                data = estimacion_yr)
 summary(att20)
 iplot(att20)
 
 # Estimación con año base 2021, cortando en 2016 y sacando 2022, FE interactuados (mig US 2010 x Year), log remesas, spanish born
 att21 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2021") | 
-                 inegi + year + viv_emig_10[year], data = estimacion_yr %>% 
+                 inegi + year + year[viv_emig_10], data = estimacion_yr %>% 
                  filter(year>=2016 & year !=2022))
 summary(att21)
 iplot(att21) # validacion del 10?
@@ -463,7 +464,7 @@ estimacion_yr_nofrontera <- estimacion_yr %>%
 
 att24 <- feols(log_remesas ~ log_spanish_born_avg :post21 | inegi + year + viv_emig_10[year], data = estimacion_yr_nofrontera)
 event24 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2021") | 
-                  inegi + year + viv_emig_10[year], data = estimacion_yr_nofrontera)
+                  inegi + year + year[viv_emig_10], data = estimacion_yr_nofrontera)
 summary(att24)
 summary(event24)
 iplot(event24) 
@@ -486,7 +487,7 @@ dev.off()
 
 # Sin estados frontera, estimación con año base 2021, todos los años pre completos, FE interactuados (mig US 2000 x Year), log remesas, log spanish born
 event25 <- feols(log_remesas ~ i(year, log_spanish_born_avg, "2021") | 
-                   inegi + year + viv_emig_00[year], data = estimacion_yr_nofrontera)
+                   inegi + year + year[viv_emig_00], data = estimacion_yr_nofrontera)
 summary(event25)
 iplot(event25) 
 
@@ -521,7 +522,7 @@ modelsummary(
 # Estimación con año base 2021, todos los años completos, FE interactuados (mig US 2010 x Year), log remesas, spanish born
 att27 <- feols(log_remesas ~ i(year, spanish_born, "2021") | 
                  inegi + year  +
-                 viv_emig_10[year] , 
+                 year[viv_emig_10] , 
                data = estimacion_yr)
 summary(att27)
 iplot(att27)
@@ -544,7 +545,7 @@ dev.off()
 # Estimación con año base 2021, todos los años completos, FE interactuados (mig US 2000 x Year), log remesas, spanish born
 att28 <- feols(log_remesas ~ i(year, spanish_born, "2021") | 
                  inegi + year  +
-                 viv_emig_00[year] , 
+                 year[viv_emig_00] , 
                data = estimacion_yr)
 summary(att28)
 iplot(att28)
@@ -850,26 +851,26 @@ iplot(event1_c_55)
 
 # Estimación con año base 2021, todos los años completos, log remesas, FE interactuados (mig US 2010 x Year)
 att2_c <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
-                     inegi + year + viv_emig_10[year], data = estimacion_yr_coh) # al 10% en ambos
+                     inegi + year + year[viv_emig_10], data = estimacion_yr_coh) # al 10% en ambos
 
 event2_c_36 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
-                       inegi + year +  + viv_emig_10[year], data = estimacion_yr_coh)
+                       inegi + year +  + year[viv_emig_10], data = estimacion_yr_coh)
 iplot(event2_c_36) 
 
 event2_c_55 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") | 
-                       inegi + year +  + viv_emig_10[year], data = estimacion_yr_coh)
+                       inegi + year +  + year[viv_emig_10], data = estimacion_yr_coh)
 iplot(event2_c_55) 
 
 # Estimación con año base 2021, todos los años completos, log remesas, FE interactuados (mig US 2000 x Year)
 att3_c <- feols(log_remesas ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
-                  inegi + year + viv_emig_00[year], data = estimacion_yr_coh) # no da siginficativo
+                  inegi + year + year[viv_emig_10], data = estimacion_yr_coh) # no da siginficativo
 
 event3_c_36 <- feols(log_remesas ~ i(year, spanish_presence_1936_1955, "2021") | 
-                       inegi + year +  + viv_emig_00[year], data = estimacion_yr_coh)
+                       inegi + year +  year[viv_emig_10], data = estimacion_yr_coh)
 iplot(event3_c_36) 
 
 event3_c_55 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") | 
-                       inegi + year +  + viv_emig_00[year], data = estimacion_yr_coh)
+                       inegi + year +  year[viv_emig_10], data = estimacion_yr_coh)
 iplot(event3_c_55) 
 
 # controles: 
@@ -1422,6 +1423,7 @@ iplot(event2_c_55_w210, main ="Post × Spanish Presence (1956–1978)" ,  xlab  
 dev.off()
 
 }
+
 # ---------------------------- #
 # 4. Synthetic DiD
 # ---------------------------- #

@@ -282,8 +282,8 @@ unique(municipios_sf$inegi)
 spanish_cohorts_mx <- municipios_sf %>%
   left_join(spanish_counts_mx, by = "inegi") %>%
   mutate(
-    across(starts_with("n_spanish"), ~replace_na(., 0)),
-    across(starts_with("unweighted_n"), ~replace_na(., 0))
+    #across(starts_with("n_spanish"), ~replace_na(., 0)), # FIX ME: no debería reemplazar por 0 los NA, son municipios que no estan en los censos
+    #across(starts_with("unweighted_n"), ~replace_na(., 0))
   ) %>%
   arrange(inegi) %>% 
   janitor::clean_names()
@@ -1933,7 +1933,7 @@ correct_mar %>%
   count(state_code_mar, nom_mun_clean) %>%
   filter(n>1) # no hay
 
-# Se corrigieron 66, veo cuales faltan
+# Se corrigieron 54, veo cuales faltan
 anti_join(faltan_corregir_mar, correct_mar, by = c("nom_mun_clean", "state_code_mar")) %>%
   View() # son 6 que tienen nombre distinto escrito al censo y a la data de remesas, los corrijo a mano
 
@@ -2026,10 +2026,24 @@ pob_conapo <- pob_conapo %>%
     inegi = str_pad(clave, width = 5, pad = "0"),
     clave_ent = str_pad(clave_ent, width = 2, pad = "0")
   ) %>% 
+  filter(ano>=2013) %>% 
   dplyr::select(inegi, everything()) %>% 
-  dplyr::arrange(inegi)
+  dplyr::arrange(inegi) 
 
 #### Diagnostico de municipios ####
+
+# Cambio el nombre de 2 municipios que tienen el nombre cortado
+pob_conapo <- pob_conapo %>% 
+  mutate(
+    nom_mun = case_when(
+      inegi == 20208 ~ "SAN JUAN MIXTEPEC DISTRITO 08",
+      inegi == 20209 ~ "SAN JUAN MIXTEPEC DISTRITO 26",
+      
+      inegi == 20318 ~ "SAN PEDRO MIXTEPEC - DISTR. 22",
+      inegi == 20319 ~ "SAN PEDRO MIXTEPEC - DISTR. 26",
+      TRUE ~ nom_mun
+    )
+  )
 
 pob_conapo <- pob_conapo %>% 
   # Limpio los nombres de los municipios para poder unir
@@ -2040,18 +2054,16 @@ pob_conapo <- pob_conapo %>%
   ) %>% 
   rename(state_code_pob = clave_ent)
 
-# Cambio el nombre de 2 municipios que tienen el nombre cortado
-pob_conapo <- pob_conapo %>% 
-  mutate(
-    nom_mun_clean = case_when(
-      inegi == 20208 ~ "SAN JUAN MIXTEPEC -DTO. 08 -",
-      inegi == 20209 ~ "SAN JUAN MIXTEPEC -DTO. 26 -",
-      
-      inegi == 20318 ~ "SAN PEDRO MIXTEPEC -DTO. 22 -",
-      inegi == 20319 ~ "SAN PEDRO MIXTEPEC -DTO. 26 -",
-      TRUE ~ nom_mun_clean
-    )
-  )
+
+# Chequeo el nombre no varíe para un mismo inegi en distintos años
+pob_conapo %>%
+  group_by(inegi) %>%
+  summarise(
+    n_nom_mun_clean = n_distinct(nom_mun_clean, na.rm = TRUE),
+    nom_mun_clean_values = paste(sort(unique(nom_mun_clean)), collapse = " | "),
+    .groups = "drop"
+  ) %>%
+  filter(n_nom_mun_clean > 1) # no varía
 
 # chequeo si hay municipios de la data de población que no estén en remesas
 anti_join(pob_conapo, remesas_yr %>% dplyr::select(nom_mun_clean, state_code_remesas) %>% distinct(),
@@ -2115,13 +2127,13 @@ a_corregir_pob <- diag_merge_pob %>%
 a_corregir_pob %>% 
   anti_join(corregidos %>% dplyr::select(nom_mun_clean, state_code_remesas) %>% distinct(),
             by = c("nom_mun_clean", "state_code_pob" = "state_code_remesas")) %>% 
-  View() # 80
+  View() # 78
 
 # Hay municipios en corregidos que ahora no haya que corregir?
 corregidos %>% 
   anti_join(a_corregir_pob %>% dplyr::select(nom_mun_clean, state_code_pob) %>% distinct(),
             by = c("nom_mun_clean", "state_code_remesas" = "state_code_pob")) %>% 
-  View() # 72
+  View() # 70
 # Los que no coinciden son los que tienen nombre truncado + los 2 que no tienen inegi + los close (no estan en a corregir)
 
 # Cruzo los a-corregir que faltan con el crosswalk de municipios de la data de población
@@ -2148,28 +2160,79 @@ correct_pob <- croswalk_pob %>%
 # chequeo que no haya duplicados en los municipios
 correct_pob %>% 
   count(state_code_pob, nom_mun_clean) %>%
-  filter(n>1)
+  filter(n>1) # no hay
 
-# Se corrigieron 65, veo cuales faltan
+# Se corrigieron 67, veo cuales faltan
 anti_join(faltan_corregir_pob, correct_pob, by = c("nom_mun_clean", "state_code_pob")) %>%
-  View() # son 15 que tienen nombre distinto escrito al censo y a la data de remesas, los corrijo a mano
+  View() # son 11 que tienen nombre distinto escrito al censo y a la data de remesas, los corrijo a mano
 
-### seguir aca: corregir nombres
 correct_pob <- correct_pob %>% 
   rbind(anti_join(faltan_corregir_pob, correct_pob, by = c("nom_mun_clean", "state_code_pob")) %>% 
           mutate(inegi = case_when(
-            nom_mun_clean == "SAN JUAN MIXTEPEC - DTO. 08" ~ "20207",
-            nom_mun_clean == "SAN JUAN MIXTEPEC - DTO. 26" ~ "20208",
-            nom_mun_clean == "SAN PEDRO MIXTEPEC - DTO. 22" ~ "20317",
-            nom_mun_clean == "SAN PEDRO MIXTEPEC - DTO. 26" ~ "20318",
-            nom_mun_clean == "BATOPILAS DE MANUEL GOMEZ MORIN" ~ "08007",
-            nom_mun_clean == "VILLA DE SANTIAGO CHAZUMBA" ~ "20458",
-            nom_mun_clean == "MEDELLIN DE BRAVO" ~ "30103",
+            nom_mun_clean == "BATOPILAS DE MANUEL GOMEZ MORIN"                                              ~ "08007",
+            nom_mun_clean == "VILLA DE SANTIAGO CHAZUMBA"                                                   ~ "20458",
             nom_mun_clean == "HEROICA VILLA TEZOATLAN DE SEGURA Y LUNA, CUNA DE LA INDEPENDENCIA DE OAXACA" ~ "20545",
+            nom_mun_clean == "SAN MATEO YUCUTINDO"                                                          ~ "20562",
+            nom_mun_clean == "MEDELLIN DE BRAVO"                                                            ~ "30103",
+            nom_mun_clean == "SAN FELIPE"                                                                  ~ NA_character_,       # no aparece en los municipios del censo
+            nom_mun_clean == "DZITBALCHE"                                                                  ~ NA_character_,      # no aparece en los municipios del censo
+            nom_mun_clean == "LAS VIGAS"                                                                   ~ NA_character_,      # no aparece en los municipios del censo
+            nom_mun_clean == "NUU SAVI"                                                                    ~ NA_character_,      # no aparece en los municipios del censo
+            nom_mun_clean == "SANTA CRUZ DEL RINCON"                                                       ~ NA_character_,      # no aparece en los municipios del censo
+            nom_mun_clean == "SAN NICOLAS"                                                                 ~ NA_character_,      # no aparece en los municipios del censo
             TRUE ~ NA_character_
           )
           )
   )
+
+correct_pob_totales <- rbind(
+  correct_pob, corregidos %>% rename(state_code_pob = state_code_remesas)
+)
+correct_pob_totales %>% count(state_code_pob, nom_mun_clean) %>%
+  filter(n>1) 
+length(unique(correct_pob_totales$inegi))
+
+a_corregir_pob %>% count(state_code_pob, nom_mun_clean) %>%
+  filter(n>1) 
+
+# Hay correcciones de mas?
+anti_join(correct_pob_totales %>% select(nom_mun_clean, state_code_pob) %>% distinct(),
+          a_corregir_pob %>% select(nom_mun_clean, state_code_pob) %>% distinct(), 
+          by = c("nom_mun_clean", "state_code_pob")) %>% 
+  View()
+# son los que tenían nombre cortado en remesas y estaban en "corregidos" + los close
+# 1112-70 = 1042 que es el total de municipios a corregir en población
+# los de nombre cortado no son un problema porque no se van a mergear por el nombre con la data de población en el proximo paso
+# los close se unen bien después con la data de población y se corrigen
+
+#### Uno los iengi corregidos con la data de población  #### 
+
+pob_conapo <- pob_conapo %>% 
+  # agrego los municipios corregidos
+  left_join(correct_pob_totales %>% rename(inegi_corregido = inegi), 
+            by = c("nom_mun_clean", "state_code_pob"))
+
+# Unifico los inegi
+pob_conapo_c <- pob_conapo %>%
+  mutate(
+    inegi_final = if_else(!is.na(inegi_corregido), inegi_corregido, inegi)
+  ) %>% 
+  select(-inegi, -inegi_corregido) %>% 
+  rename(inegi = inegi_final) %>% 
+  arrange(inegi, ano) %>% 
+  select(inegi, ano , nom_mun_clean, state_code_pob, everything())
+
+any(is.na(pob_conapo_c$inegi)) # no hay NA
+
+# Agrego la data a nivel de inegi y año
+pob_conapo_c <- pob_conapo_c %>% 
+  group_by(inegi, ano) %>%
+  summarise(
+    poblacion_total = sum(pob_mit_mun, na.rm = TRUE),
+    .groups = "drop"
+  ) %>% 
+  rename(year = ano) %>% 
+  arrange(inegi, year)
 
 }
 # -------------------- #
@@ -2208,6 +2271,8 @@ estimacion_yr <- remesas_yr %>%
   rename(poblacion_2020 = poblacion_total) %>% 
   # agrego la data de marginación
   left_join(marginacion_wide, by = "inegi") %>%
+  # agrego la población proyectada por CONAPO
+  left_join(pob_conapo_c, by = c("inegi", "year")) %>%
   # creo post y el log de las remesas
   mutate(
     post22 = if_else(year > 2022, 1, 0), # la ley es de octubre del 2022
@@ -2237,6 +2302,10 @@ estimacion_yr %>%
     !is.na(log_remesas)
   ) %>%
   summarise(n_inegi = n_distinct(inegi)) # 2322 
+
+# Creo las remesas per capita
+estimacion_yr <- estimacion_yr %>% 
+  mutate(remesas_pc = total_remesas/poblacion_total)
 
 # Data de remesas trimestral con exposición histórica. FIX ME: PARA PODER HACER ESTO TENGO QUE CORREGIR LOS INEGI DE LAS REMESAS TRIMESTRALES
 { 
@@ -2291,9 +2360,10 @@ estimacion_tri <- estimacion_tri %>%
 write_csv(estimacion_tri, "Data Out/estimacion_remesas_tri.csv")
 }
 
-write_csv(estimacion_yr, "Data Out/estimacion_remesas_yr2.csv")
-write_dta(estimacion_yr, "Data Out/estimacion_remesas_yr2.dta")
+write_csv(estimacion_yr, "Data Out/estimacion_remesas_yr3.csv")
+write_dta(estimacion_yr, "Data Out/estimacion_remesas_yr3.dta")
   # la versión 2 agrega las covariables de población y de marginación
+  # la versión 3 agrega la población y remesas PC
 
 #### 2. Creo la data para la estimación con cohortes de llegada #### 
 
@@ -2320,11 +2390,14 @@ estimacion_yr_coh <- remesas_yr %>%
   rename(poblacion_2020 = poblacion_total) %>% 
   # agrego la data de marginación
   left_join(marginacion_wide, by = "inegi") %>%
+  # Agrego la población proyectada por CONAPO
+  left_join(pob_conapo_c, by = c("inegi", "year")) %>%
   # Creo post y el lo de las remesas
   mutate(
     post22 = if_else(year > 2022, 1, 0), # la ley es de octubre del 2022
     post21 = if_else(year > 2021, 1, 0),
-    log_remesas = log1p(total_remesas)
+    log_remesas = log1p(total_remesas),
+    remesas_pc = total_remesas/poblacion_total
   ) %>% 
   arrange(inegi, year) %>% 
   select(inegi, year, admin_name, spanish_presence_1936_1955, spanish_presence_1956_1978, 
@@ -2344,9 +2417,10 @@ estimacion_yr_coh_dta <- st_drop_geometry(estimacion_yr_coh) %>%
   select(-geometry)
   
 # Exporto la data
-write_csv(estimacion_yr_coh, "Data Out/estimacion_remesas_yr_coh2.csv")
-write_dta(estimacion_yr_coh_dta, "Data Out/estimacion_remesas_yr_coh2.dta")
+write_csv(estimacion_yr_coh, "Data Out/estimacion_remesas_yr_coh3.csv")
+write_dta(estimacion_yr_coh_dta, "Data Out/estimacion_remesas_yr_coh3.dta")
   # la versión 2 agrega las covariables de población y de marginación
+  # la versión 3 agrega la población y remesas PC, y ademas pone como NA en vez de 0 en la presencia de españoles cuando el municipio no aparece en los censos
 }
 
 # 1. LISTO. agregar las nievas covariables a estimacion_yr_coh
