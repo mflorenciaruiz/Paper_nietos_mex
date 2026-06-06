@@ -873,6 +873,18 @@ event3_c_55 <- feols(log_remesas ~ i(year, spanish_presence_1956_1978, "2021") |
                        inegi + year +  year[viv_emig_10], data = estimacion_yr_coh)
 iplot(event3_c_55) 
 
+# Estimación con año base 2021, todos los años pre completos, remesas pc 
+att1_c_pc <- feols(remesas_pc ~ spanish_presence_1936_1955:post21 + spanish_presence_1956_1978:post21 |
+                  inegi + year, data = estimacion_yr_coh)
+
+event1_c_36_pc <- feols(remesas_pc ~ i(year, spanish_presence_1936_1955, "2021") | 
+                       inegi + year, data = estimacion_yr_coh)
+iplot(event1_c_36_pc) 
+
+event1_c_55_pc <- feols(remesas_pc ~ i(year, spanish_presence_1956_1978, "2021") | 
+                       inegi + year, data = estimacion_yr_coh)
+iplot(event1_c_55_pc) 
+
 # controles: 
   # Migracion a eeuu anual o en un año dado (“dejá que los municipios que ya eran migratorios a EE. UU. en 2000 tengan una dinámica temporal distinta de las remesas.”)
   # reveer controles trimestrales, los datos de emig eeuu mex son anuales y los interactuo con fe trimestrañes

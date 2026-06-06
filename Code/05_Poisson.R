@@ -38,10 +38,10 @@ dir.create(tables_path, showWarnings = FALSE, recursive = TRUE)
 ############################################################
 
 # Base para exposición continua: log Spanish-born average
-estimacion_yr <- read_csv(file.path(data_path, "estimacion_remesas_yr2.csv"))
+estimacion_yr <- read_csv(file.path(data_path, "estimacion_remesas_yr3.csv"))
 
 # Base para especificaciones de cohortes / presencia
-estimacion_yr_coh <- read_csv(file.path(data_path, "estimacion_remesas_yr_coh2.csv"))
+estimacion_yr_coh <- read_csv(file.path(data_path, "estimacion_remesas_yr_coh3.csv"))
 
 ############################################################
 # 2. Opciones
@@ -166,16 +166,27 @@ make_event_plot <- function(model,
                 mutate(year_lab = as.character(as.integer(year))), aes(x = year, y = pct)) +
     geom_hline(yintercept = 0) +
     geom_vline(xintercept = ref_year, linetype = "dashed") +
-    geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.15) +
+    geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.15, color = "grey65") +
     geom_point(size = 2) +
-    geom_line() +
+    scale_x_continuous(breaks = seq(2013, 2025, by = 1)) +
+    #geom_line() +
     labs(
       title = title,
       subtitle = subtitle,
       x = "Year",
       y = "Percent effect on expected remittances"
     ) +
-    theme_minimal()
+    theme_minimal(base_family = "Times New Roman", base_size = 12)+
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 12),
+      plot.subtitle = element_text(hjust = 0.5, size = 10),
+      panel.grid.minor = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.major.y = element_line(color = "grey85", linewidth = 0.3),
+      axis.line = element_line(color = "black", linewidth = 0.4),
+      axis.text = element_text(color = "black", size = 11),
+      axis.title = element_text(color = "black", size = 11)
+    )
   
   ggsave(
     filename = file.path(graphs_path, paste0(output_name, ".png")),
@@ -207,13 +218,15 @@ sample_check <- function(raw_data, clean_data, model, name) {
 
 df_main <- clean_ppml_data(
   data = estimacion_yr,
+  #outcome = "remesas_pc",
   outcome = "total_remesas",
   outlier_method = outlier_method
 ) # FIX ME: no hace falta, pero faltaría limpiar las obs con NA en el treatment para que este completa la limpieza
 
 df_coh <- clean_ppml_data(
   data = estimacion_yr_coh,
-  outcome = "total_remesas",
+  outcome = "remesas_pc",
+  #outcome = "total_remesas",
   outlier_method = outlier_method
 )
 
@@ -228,7 +241,7 @@ suffix <- paste0(
 )
 
 ############################################################
-# 5. CONTINUA: equivalente PPML de OLS con log_spanish_born_avg
+# 5.1. CONTINUA: equivalente PPML de OLS con log_spanish_born_avg
 ############################################################
 
 df_cont <- df_main %>%
@@ -267,16 +280,16 @@ plot_log_spanish <- make_event_plot(
     "Equivalent to OLS event-study; outcome in levels; ref. year: ",
     ref_year,
     "; sample: ",
-    ifelse(use_2016_sample, "2016–2024", "all years"),
-    "; outliers: ",
-    outlier_method
+    ifelse(use_2016_sample, "2016–2024", "all years")
+    #, "; outliers: ",
+    #outlier_method
   ),
   output_name = paste0("ppml_event_log_spanish_", suffix),
   ref_year = ref_year
 )
 
 ############################################################
-# 6. CONTINUA + tendencias migratorias
+# 5.2. CONTINUA + tendencias migratorias
 # Equivalente a OLS preferido, pero corrigiendo sintaxis:
 # year[viv_emig_10] = year x viv_emig_10
 ############################################################
@@ -329,7 +342,7 @@ if ("viv_emig_10" %in% names(df_cont)) {
 }
 
 ############################################################
-# 7. ATTs del modelo continuo (con y sin mig trends)
+# 5.3. ATTs del modelo continuo (con y sin mig trends)
 ############################################################
 
 m_post_log_spanish <- fepois(
@@ -370,7 +383,7 @@ if ("viv_emig_10" %in% names(df_cont)) {
 }
 
 ############################################################
-# 8. COHORTES / presencia: equivalente PPML de OLS por cohortes
+# 6. COHORTES / presencia: equivalente PPML de OLS por cohortes
 ############################################################
 
 df_presence <- df_coh %>%
@@ -383,14 +396,13 @@ df_presence <- df_coh %>%
     spanish_presence_1956_1978 = as.numeric(spanish_presence_1956_1978)
   )
 
-# Las variables ya eran numéricas y no había NA pero lo dejo por las dudas.
 is.numeric(estimacion_yr_coh$spanish_presence_1936_1955)
 is.numeric(estimacion_yr_coh$spanish_presence_1956_1978)
 any(is.na((estimacion_yr_coh$spanish_presence_1936_1955)))
 any(is.na((estimacion_yr_coh$spanish_presence_1956_1978)))
 
 ############################################################
-# 8.1 Event-study: presencia 1936-1955
+# 6.1. Event-study: presencia 1936-1955
 ############################################################
 
 m_ols_presence_1936 <- feols(
@@ -424,16 +436,16 @@ plot_presence_1936 <- make_event_plot(
     "Treated relative to controls; ref. year: ",
     ref_year,
     "; sample: ",
-    ifelse(use_2016_sample, "2016–2024", "all years"),
-    "; outliers: ",
-    outlier_method
+    ifelse(use_2016_sample, "2016–2024", "all years")
+    #,"; outliers: ",
+    #outlier_method
   ),
   output_name = paste0("ppml_event_presence_1936_1955_", suffix),
   ref_year = ref_year
 )
 
 ############################################################
-# 8.2 Event-study: presencia 1956-1978
+# 6.2. Event-study: presencia 1956-1978
 ############################################################
 
 m_ols_presence_1956 <- feols(
@@ -467,16 +479,16 @@ plot_presence_1956 <- make_event_plot(
     "Treated relative to controls; ref. year: ",
     ref_year,
     "; sample: ",
-    ifelse(use_2016_sample, "2016–2024", "all years"),
-    "; outliers: ",
-    outlier_method
+    ifelse(use_2016_sample, "2016–2024", "all years")
+    #, "; outliers: ",
+    #outlier_method
   ),
   output_name = paste0("ppml_event_presence_1956_1978_", suffix),
   ref_year = ref_year
 )
 
 ############################################################
-# 8.3 Event-studies con tendencias migratorias
+# 6.3. Event-studies con tendencias migratorias
 ############################################################
 
 if ("viv_emig_10" %in% names(df_presence)) {
@@ -533,7 +545,7 @@ if ("viv_emig_10" %in% names(df_presence)) {
 }
 
 ############################################################
-# 9. ATTs del modelo por cohortes
+# 6.4. ATTs del modelo por cohortes
 # Equivalente al OLS:
 # log_remesas ~ spanish_presence_1936_1955:post21 +
 #               spanish_presence_1956_1978:post21 | inegi + year
@@ -577,8 +589,54 @@ if ("viv_emig_10" %in% names(df_presence)) {
   summary(m_post_coh_ppml_mig)
 }
 
+
 ############################################################
-# 10. Comparación de nobs OLS vs PPML
+# 6.5. Event-study:presencia 1936-1955 (remesas PC)
+############################################################
+
+m_ols_presence_1936 <- feols(
+  remesas_pc ~ i(year, spanish_presence_1936_1955, ref = ref_year) |
+    inegi + year,
+  data = df_presence,
+  cluster = ~ inegi
+)
+
+m_ppml_presence_1936 <- fepois(
+  remesas_pc ~ i(year, spanish_presence_1936_1955, ref = ref_year) |
+    inegi + year,
+  data = df_presence,
+  cluster = ~ inegi
+)
+
+summary(m_ols_presence_1936)
+summary(m_ppml_presence_1936)
+
+sample_check(
+  raw_data = estimacion_yr_coh,
+  clean_data = df_presence,
+  model = m_ppml_presence_1936,
+  name = "PPML Spanish presence 1936-1955"
+)
+
+plot_presence_1936 <- make_event_plot(
+  model = m_ppml_presence_1936,
+  title = "PPML event-study: Spanish presence 1936–1955",
+  subtitle = paste0(
+    "Treated relative to controls; ref. year: ",
+    ref_year,
+    "; sample: ",
+    ifelse(use_2016_sample, "2016–2024", "all years"),
+    "; outliers: ",
+    outlier_method,
+    "; outcome: remittances per capita"
+  ),
+  output_name = paste0("ppml_event_presence_1936_1955_", suffix, "_pc"),
+  ref_year = ref_year
+)
+
+
+############################################################
+# 7. Comparación de nobs OLS vs PPML
 ############################################################
 
 cat("\n")
@@ -602,6 +660,33 @@ cat("Interpretación PPML: 100*(exp(beta)-1), efecto porcentual sobre remesas es
 
 
 ### 
+
+# Exporto m_post_log_spanish y m_post_coh_ppml
+
+modelsummary(
+  list(
+    "Log Spanish-born avg" = m_post_log_spanish, 
+    "Cohort PPML" = m_post_coh_ppml),
+  output = "Output/Estimaciones/att_poisson.docx",
+  stars = c('*' = .1, '**' = .05, '***' = .01),
+  gof_map = data.frame(
+    raw = c("r.squared", "nobs"),
+    clean = c("R²", "Observations"),
+    fmt = c(3, 0)
+  ),
+  coef_map = c(
+    "post21:log_spanish_born_avg" = "Post × log Spanish-born average",
+    "post21:spanish_presence_1936_1955" = "Post × Spanish share (1936-1955)",
+    "post21:spanish_presence_1956_1978" = "Post × Spanish share (1956-1978)"
+  ),
+  add_rows = tibble::tibble(
+    term = c("Municipality FE", "Time FE"),
+    "Log Spanish-born avg" = c("Yes", "Yes"),
+    "Cohort PPML" = c("Yes", "Yes")
+  ),
+  notes = "Poisson pseudo-maximum likelihood estimates. Standard errors clustered at the municipality level in parentheses."
+)
+
 
 ############################################################
 # Histograma de remesas totales y tabla de deciles
@@ -655,7 +740,7 @@ ggsave(
 
 
 ############################################################
-# 3. Tabla lista para PowerPoint
+# 2. Tabla lista para PowerPoint
 ############################################################
 
 tabla_deciles_remesas <- df_hist %>%

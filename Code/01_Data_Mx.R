@@ -278,12 +278,23 @@ municipios_sf <- municipios_sf %>%
 
 unique(municipios_sf$inegi)
 
+# chequeo si todos los municipios de municipios_sf aparecen en los censos
+municipios_unicos_censos <- censos %>% 
+  dplyr::select(inegi, year)
+length(unique(municipios_unicos_censos$inegi)) # hay 2324 municipios únicos en los censos
+length(unique(municipios_sf$inegi)) # 2325
+
+anti_join(municipios_sf %>% select(inegi), municipios_unicos_censos, by = "inegi") %>% 
+  View()  # solo 1: 21133
+
 # Mergeo
 spanish_cohorts_mx <- municipios_sf %>%
   left_join(spanish_counts_mx, by = "inegi") %>%
   mutate(
-    #across(starts_with("n_spanish"), ~replace_na(., 0)), # FIX ME: no debería reemplazar por 0 los NA, son municipios que no estan en los censos
-    #across(starts_with("unweighted_n"), ~replace_na(., 0))
+    across(starts_with("n_spanish"), ~replace_na(., 0)),
+    across(starts_with("unweighted_n"), ~replace_na(., 0)),
+    # reemplazo por NA en el municipio que no esta en los censos (21133) en todas las variables que empiezan con n_spanish y unweighted_n, para que no queden como 0 sino como NA, porque no tengo info de ese municipio
+    across(c(starts_with("n_spanish"), starts_with("unweighted_n")), ~if_else(inegi == "21133", NA_real_, .))
   ) %>%
   arrange(inegi) %>% 
   janitor::clean_names()

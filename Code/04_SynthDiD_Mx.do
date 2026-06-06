@@ -334,4 +334,51 @@ esttab sdid_pooled_nc sdid_pooled_c sdid_c1_nc sdid_c1_c sdid_c2_nc sdid_c2_c, /
     se star(* 0.10 ** 0.05 *** 0.01) b(%9.4f) se(%9.4f) ///
     mtitles("Pool s/c" "Pool c/c" "V1 s/c" "V1 c/c" "V2 s/c" "V2 c/c")
 
-* fin
+* -------------------------------------- *
+* 5. Pruebas con remesas PC
+* -------------------------------------- *
+
+use "$data_out/estimacion_remesas_yr_coh3.dta", clear
+
+* id de grupo numérico (sdid lo necesita; inegi es string)
+egen mun = group(inegi)
+
+xtset mun year
+
+// Remesas PC
+
+preserve
+* sdid EXIGE panel BALANCEADO -> elimino municipios con años o con la variable dependiente faltante
+drop if missing(remesas_pc)
+
+drop if spanish_presence_1936_1955==0 & spanish_presence_1956_1978==1
+gen byte _trt = (spanish_presence_1936_1955==1)
+* variable de tratamiento 0/1 acumulada que pide sdid
+gen byte treat = (_trt==1 & year >= $tyear )
+			
+eststo sdid_c1_nc_pc: sdid remesas_pc mun year treat, ///
+            vce($vcetype ) seed($seed ) reps($nreps ) ///
+            graph mattitles ///
+            g2_opt(ytitle("Remittances PC") ///
+			      title("Remittances Trends - Tratment: Window 1936-1955", size(*0.7)) ///
+				  xtitle("Year") scheme(stsj)) graph_export("$out_folder/sdid_c1_sincontrol_pc", .png)
+restore
+
+// Remesas totales
+
+preserve
+* sdid EXIGE panel BALANCEADO -> elimino municipios con años o con la variable dependiente faltante
+drop if missing(total_remesas)
+
+drop if spanish_presence_1936_1955==0 & spanish_presence_1956_1978==1
+gen byte _trt = (spanish_presence_1936_1955==1)
+* variable de tratamiento 0/1 acumulada que pide sdid
+gen byte treat = (_trt==1 & year >= $tyear )
+			
+eststo sdid_c1_nc_pc: sdid total_remesas mun year treat, ///
+            vce($vcetype ) seed($seed ) reps($nreps ) ///
+            graph mattitles ///
+            g2_opt(ytitle("Remittances (total)") ///
+			      title("Remittances Trends - Tratment: Window 1936-1955", size(*0.7)) ///
+				  xtitle("Year") scheme(stsj)) graph_export("$out_folder/sdid_c1_sincontrol_tot", .png)
+restore
